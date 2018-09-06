@@ -14,7 +14,7 @@ from scipy.misc import imread, imresize
 from imagenet_classes import class_names
 from tensorflow.python import debug as tf_debug
 
-IMAGE_SHAPE = (101, 101)
+IMAGE_SHAPE = (104, 104)
 IMAGE_CHANNELS = 3
 
 class vgg16:
@@ -33,10 +33,10 @@ class vgg16:
         # zero-mean input
         with tf.name_scope('preprocess') as scope:
             #mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-            mean = tf.constant([120.346, 120.346, 120.346], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
+            mean = tf.constant([0, 0, 0], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
             images = self.imgs-mean
         
-        # SIZE IS [?, 101, 101, 3]
+        # SIZE IS [?, 104, 104, 3]
         
         # conv1_1
         with tf.name_scope('conv1_1') as scope:
@@ -67,7 +67,7 @@ class vgg16:
                                padding='SAME',
                                name='pool1')
         
-        # SIZE IS [?, 51, 51, 128]
+        # SIZE IS [?, 52, 52, 128]
         
         # conv2_1
         with tf.name_scope('conv2_1') as scope:
@@ -245,7 +245,7 @@ class vgg16:
             fc2l = tf.nn.bias_add(tf.matmul(self.fc1, fc2w), fc2b)
             self.fc2 = tf.nn.relu(fc2l)
             self.parameters += [fc2w, fc2b]
-
+        
         # fc3
         with tf.name_scope('fc3') as scope:
             fc3w = tf.Variable(tf.truncated_normal([4096, 1000],
@@ -270,6 +270,7 @@ if __name__ == '__main__':
     sess = tf.Session()
     #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
     imgs = tf.placeholder(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], 3], name='image_input')
+    imgs.get_shape()
     vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
     saver = tf.train.Saver()
     builder = tf.saved_model.builder.SavedModelBuilder('./saved_model')
