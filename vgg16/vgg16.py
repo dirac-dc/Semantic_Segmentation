@@ -14,8 +14,7 @@ from scipy.misc import imread, imresize
 from imagenet_classes import class_names
 from tensorflow.python import debug as tf_debug
 
-IMAGE_SHAPE = (104, 104)
-IMAGE_CHANNELS = 3
+INPUT_SHAPE = (104, 104, 3)
 
 class vgg16:
     def __init__(self, imgs, weights=None, sess=None, correct_labels=None):
@@ -269,9 +268,10 @@ class vgg16:
 if __name__ == '__main__':
     sess = tf.Session()
     #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
-    imgs = tf.placeholder(tf.float32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], 3], name='image_input')
+    imgs = tf.placeholder(tf.float32, [None, *INPUT_SHAPE], name='image_input')
     imgs.get_shape()
     vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
+    print('#### ####', vgg.conv2_1.get_shape())
     saver = tf.train.Saver()
     builder = tf.saved_model.builder.SavedModelBuilder('./saved_model')
     foo_sdef = tf.saved_model.signature_def_utils.build_signature_def(
