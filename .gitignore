@@ -1,6 +1,6 @@
 # Don't track content of these folders
 data/
-vgg16/saved_model/
+vgg16/saved_model*
 
 # Don't track files
 vgg16_weights.npz
