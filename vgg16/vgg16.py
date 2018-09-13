@@ -11,8 +11,7 @@
 import tensorflow as tf
 import numpy as np
 from scipy.misc import imread, imresize
-from imagenet_classes import class_names
-from tensorflow.python import debug as tf_debug
+#from imagenet_classes import class_names
 
 INPUT_SHAPE = (104, 104, 3)
 
@@ -34,8 +33,6 @@ class vgg16:
             #mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
             mean = tf.constant([0, 0, 0], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
             images = self.imgs-mean
-        
-        # SIZE IS [?, 104, 104, 3]
         
         # conv1_1
         with tf.name_scope('conv1_1') as scope:
@@ -267,7 +264,6 @@ class vgg16:
 
 if __name__ == '__main__':
     sess = tf.Session()
-    #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
     imgs = tf.placeholder(tf.float32, [None, *INPUT_SHAPE], name='image_input')
     imgs.get_shape()
     vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
