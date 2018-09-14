@@ -17,12 +17,14 @@ INPUT_SHAPE = (104, 104, 3)
 
 class vgg16_modified:
     
-    def __init__(self, imgs, sess=None, weights=WEIGHT_PATH):
+    def __init__(self, imgs, dropout, phase, sess=None, weights=None):
         self.imgs = imgs
+        self.phase = phase
+        self.dropout = dropout
         self.output = self.layers()
         if weights is not None and sess is not None:
             self.load_weights(weights, sess)
-
+        
 
     def layers(self, num_classes = NUM_CLASSES):
         self.parameters = []
@@ -61,7 +63,14 @@ class vgg16_modified:
                                padding='SAME',
                                name='pool1'
                                    )
-                                                                
+        
+        # dropout1
+        self.pool1 = tf.layers.dropout(self.pool1, 
+                                       rate=self.dropout,
+                                       training=self.phase,
+                                       name='dropout_1'
+                                      )
+        
         # conv2_1
         with tf.name_scope('conv2_1') as scope:
             kernel = tf.Variable(tf.truncated_normal([3, 3, 64, 128], dtype=tf.float32,
@@ -90,6 +99,13 @@ class vgg16_modified:
                                strides=[1, 2, 2, 1],
                                padding='SAME',
                                name='pool2')
+        
+        # dropout2
+        self.pool2 = tf.layers.dropout(self.pool2, 
+                                       rate=self.dropout,
+                                       training=self.phase,
+                                       name='dropout_2'
+                                      ) 
         
         # conv3_1
         with tf.name_scope('conv3_1') as scope:
@@ -131,6 +147,12 @@ class vgg16_modified:
                                padding='SAME',
                                name='pool3')
 
+        # dropout3
+        self.pool3 = tf.layers.dropout(self.pool3, 
+                                       rate=self.dropout,
+                                       training=self.phase,
+                                       name='dropout_3'
+                                      ) 
         
         # Use a shorter variable name for simplicity
         layer3, layer4, layer7 = self.pool1, self.pool2, self.pool3

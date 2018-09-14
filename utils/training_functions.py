@@ -18,9 +18,11 @@ from os.path import isfile, join
 from PIL import Image
 import os
 
+
 FEAT_DIR = './data/train/images'
 LABELS_DIR = './data/train/masks'
-WEIGHT_PATH = './vgg16/vgg16_weights.npz'
+WEIGHT_PATH = '/home/paperspace/kaggle/Semantic_Segmentation/vgg16/vgg16_weights.npz'
+
 NUM_CLASSES = 1
 EPOCHS = 10
 LRATE = 0.001
@@ -30,17 +32,32 @@ LABEL_SHAPE = (101, 101)
 INPUT_SHAPE = (104, 104, 3)
 OUTPUT_SHAPE = (104, 104)
 
-def optimize(nn_last_layer, correct_label, learning_rate = LRATE, num_classes = NUM_CLASSES):
+
+
+def optimize(nn_last_layer,
+             correct_label,
+             learning_rate=LRATE,
+             num_classes=NUM_CLASSES,
+             loss_metric='cross_entropy'):
     logits = tf.reshape(nn_last_layer, (-1, num_classes), name="fcn_logits")
     correct_label_reshaped = tf.reshape(correct_label, (-1, num_classes))
-    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=correct_label_reshaped[:])
-    loss_op = tf.reduce_mean(cross_entropy, name="fcn_loss") # actual loss value
+    if loss_metric == 'cross_entropy':
+        cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=correct_label_reshaped[:])
+        loss_op = tf.reduce_mean(cross_entropy, name="fcn_loss") # actual loss value
+    elif loss_metric == 'rmse':
+        sig = tf.sigmoid(logits)
+#         loss_op, _ = tf.metrics.mean_squared_error(labels=correct_label_reshaped, 
+#                                       predictions=sig
+#                                      )
+        loss_op = tf.sqrt(tf.reduce_mean(tf.square(tf.subtract(correct_label_reshaped, sig))))
+    
     train_op = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss_op, name="fcn_train_op")
     return logits, train_op, loss_op
 
 def train_nn(sess, epochs, batch_size, data_handler, train_op,
              cross_entropy_loss, input_image,
-             correct_label, phase_ph):
+             correct_label, dropout_ph, dropout_rate, phase_ph,
+             pretrain = None):
     
     def check_and_delete_existing(directory):
         if os.path.exists(directory):
@@ -53,28 +70,37 @@ def train_nn(sess, epochs, batch_size, data_handler, train_op,
     train_summary=tf.Summary()
     val_summary=tf.Summary()
     
-    # Initialize all variables
-    sess.run(tf.global_variables_initializer())
-    sess.run(tf.local_variables_initializer())
+    if pretrain:
+        pretrain.load_weights(weight_file=WEIGHT_PATH, sess = sess)
+    else:
+        #Initialize all variables
+        sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
     
     total_train_loss = 0
     total_val_loss = 0
     step = 0 
     for epoch in range(epochs):
         total_train_loss = 0
-        total_val__loss = 0
+        total_val_loss = 0
         for X_batch, gt_batch in data_handler.gen_batch_function(bs = batch_size):
             step += 1
             
-            loss, _ = sess.run([cross_entropy_loss, train_op], 
-                               feed_dict={input_image: X_batch, 
-                                          correct_label: gt_batch,
-                                          phase_ph: 1})
+            loss, _ = sess.run(
+                [cross_entropy_loss, train_op], 
+                feed_dict={input_image: X_batch, 
+                           correct_label: gt_batch, 
+                           dropout_ph: dropout_rate, 
+                           phase_ph: 1}
+            )
             
-            val_loss = sess.run([cross_entropy_loss], 
-                                feed_dict={input_image: data_handler.val_feat_data, 
-                                           correct_label: data_handler.val_label_data, 
-                                           phase_ph: 1})
+            val_loss = sess.run(
+                [cross_entropy_loss],
+                feed_dict={input_image: data_handler.val_feat_data - data_handler.get_mean(), 
+                           correct_label: data_handler.val_label_data, 
+                           dropout_ph: dropout_rate, 
+                           phase_ph: 0}
+            )
             
             train_summary.value.add(tag='train_loss', simple_value = loss)
             val_summary.value.add(tag='val_loss', simple_value = val_loss[0])
@@ -94,12 +120,14 @@ def train_nn(sess, epochs, batch_size, data_handler, train_op,
     
     train_pred = sess.run([output], 
              feed_dict={input_image: data_handler.train_feat_data[:5], 
-                        correct_label: data_handler.train_label_data[:5], 
+                        correct_label: data_handler.train_label_data[:5],
+                        dropout_ph: dropout_rate,
                         phase_ph: 0})
     
     test_pred = sess.run([output], 
              feed_dict={input_image: data_handler.val_feat_data[:5], 
                         correct_label: data_handler.val_label_data[:5], 
+                        dropout_ph: dropout_rate,
                         phase_ph: 0})
     
     return (data_handler.train_feat_data[:5], 

@@ -48,7 +48,7 @@ class data_handling:
         _, _, _ = \
         self.split_data(self.label_data, 
                         self.filenames)
-    
+        
     def gen_batch_function(self, dataset='train',
                            bs=BATCH_SIZE, num_batches=None):
         
@@ -111,7 +111,7 @@ class data_handling:
     @staticmethod
     def split_data(data, \
                    filenames, \
-                   val_split = 0.05,
+                   val_split = 0.10,
                    split = 0.8
                   ):
         
