@@ -16,12 +16,14 @@ import pandas as pd
 from os import listdir
 from os.path import isfile, join
 from PIL import Image
+import os
 
 FEAT_DIR = './data/train/images'
 LABELS_DIR = './data/train/masks'
 WEIGHT_PATH = './vgg16/vgg16_weights.npz'
 NUM_CLASSES = 1
 EPOCHS = 10
+LRATE = 0.001
 BATCH_SIZE = 64
 IMAGE_SHAPE = (101, 101, 3)
 LABEL_SHAPE = (101, 101)

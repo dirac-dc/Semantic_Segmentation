@@ -175,6 +175,8 @@ class vgg16_modified:
         sess.run(tf.local_variables_initializer())
         weights = np.load(weight_file)
         keys = sorted(weights.keys())
+        print('Loading VGG16 Weights')
+        print(' ')
         for i, k in enumerate(keys):
             if i < 14: #ensures only conv layers weights are uploaded
                 print(i, k, np.shape(weights[k]))
